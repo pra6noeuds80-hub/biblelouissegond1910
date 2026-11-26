@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Bible – Louis Segond</title>
+<style>
+:root{--bg:#f7f0e1;--card:#fffaf0;--ink:#2b2118;--mute:#7a6a58;--gold:#b8860b;--goldbg:#fbe9a8;--line:#dccfb5;--acc:#7a1f1f;--sea:#bcd6e6;--land:#efe3c8;--coast:#8a7a5c;--river:#6fa3c7}
+@media (prefers-color-scheme:dark){:root{--bg:#18130e;--card:#221b14;--ink:#eadfca;--mute:#a8987f;--gold:#e0b84a;--goldbg:#4a3a0f;--line:#3a2f22;--acc:#e08a8a;--sea:#1b2f40;--land:#2c241a;--coast:#6b5d45;--river:#3d6f94}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:8px 10px}
+h1{font-size:18px;margin:0 0 6px;color:var(--acc)}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+select,button{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+button{cursor:pointer}
+button.on{background:var(--gold);color:#fff;border-color:var(--gold)}
+nav.tabs{display:flex;gap:4px;margin-top:6px}
+nav.tabs button{flex:1}
+main{max-width:760px;margin:0 auto;padding:12px 12px 120px}
+.info{font-size:14px;color:var(--mute);border-left:3px solid var(--gold);padding:4px 10px;margin:8px 0 14px}
+.v{padding:3px 6px;border-radius:6px;font-size:18px}
+.v .n{font-size:11px;color:var(--mute);vertical-align:super;margin-right:4px}
+.v.mk{background:var(--goldbg);border-left:4px solid var(--gold)}
+.v.cur{outline:2px solid var(--acc)}
+.note{background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:8px 12px;margin:6px 0 12px;font-size:15px}
+.note b{color:var(--gold)}
+.item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;cursor:pointer}
+.item b{color:var(--acc)} .item small{color:var(--mute)}
+.tl{border-left:2px solid var(--gold);margin-left:8px;padding-left:14px}
+.tl div{margin:0 0 12px;position:relative}
+.tl div:before{content:"";position:absolute;left:-21px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--gold)}
+.tl b{color:var(--acc)}
+.bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);padding:8px 10px;z-index:6}
+.bar .row{max-width:760px;margin:0 auto}
+.hide{display:none}
+.msg{padding:20px;text-align:center;color:var(--mute)}
+footer{font-size:12px;color:var(--mute);text-align:center;margin-top:24px}
+#map{width:100%;height:60vh;min-height:340px;display:block;border-radius:10px;border:1px solid var(--line);margin:8px 0;touch-action:none;background:var(--land);cursor:grab}
+#map text{font-family:Georgia,serif;pointer-events:none}
+#pinfo{margin:6px 0}
+.pl{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid var(--line);cursor:pointer;font-size:15px}
+.pl small{color:var(--mute)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+input[type=search]{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);flex:1;min-width:120px}
+h2{font-size:17px;color:var(--acc);margin:18px 0 6px}
+</style>
+</head>
+<body>
+<header>
+<h1>✝ La Bible — Louis Segond 1910</h1>
+<div class="row">
+<select id="bk" aria-label="Livre"></select>
+<select id="ch" aria-label="Chapitre"></select>
+<button id="pv">◀</button><button id="nx">▶</button>
+<button id="mkb" class="on" title="Afficher/masquer les marques">✦ Marques</button>
+</div>
+<nav class="tabs"><button data-t="lire" class="on">Lire</button><button data-t="dieu">Jésus est Dieu</button><button data-t="hist">Histoire</button><button data-t="carte">Carte</button></nav>
+</header>
+<main>
+<section id="t-lire">
+<div class="info" id="info"></div>
+<div id="text"><div class="msg">Chargement…</div></div>
+</section>
+<section id="t-dieu" class="hide">
+<p class="info">Passages que la tradition chrétienne (trinitaire) cite pour affirmer la divinité de Jésus-Christ. Touchez un passage pour le lire : il est surligné en doré dans le texte. D’autres traditions interprètent certains de ces versets autrement.</p>
+<div id="dlist"></div>
+</section>
+<section id="t-hist" class="hide">
+<h2>Frise historique (dates approximatives)</h2>
+<div class="tl" id="tl"></div>
+<h2>Contexte du livre en cours</h2>
+<div class="info" id="info2"></div>
+</section>
+<section id="t-carte" class="hide">
+<p class="info">Carte schématique intégrée : elle fonctionne sans connexion. Glissez pour déplacer, pincez ou utilisez ＋ / － pour zoomer : les noms des lieux apparaissent en zoomant. Environ 90 lieux parmi plus d’un millier cités ; l’emplacement de certains sites est incertain.</p>
+<div class="row"><input type="search" id="q" placeholder="Chercher un lieu…"><span id="cnt" style="font-size:13px;color:var(--mute)"></span></div>
+<div class="row" id="cats" style="margin-top:6px"></div>
+<div class="row"><button id="zi">＋</button><button id="zo">－</button><button id="zr">Tout voir</button></div>
+<svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+<div id="pinfo"></div>
+<div id="plist"></div>
+</section>
+<footer>Texte : Louis Segond 1910 (domaine public), chargé via l’API getBible. Notes et frise : rédaction propre.</footer>
+</main>
+<div class="bar"><div class="row">
+<button id="play">▶ Lecture auto</button>
+<button id="pause">⏸</button>
+<button id="stop">⏹</button>
+<label style="font-size:13px">Vitesse <input id="rate" type="range" min="0.7" max="1.4" step="0.1" value="1" style="width:80px;vertical-align:middle"></label>
+<label style="font-size:13px"><input id="rn" type="checkbox"> notes</label>
+</div></div>
+
+<script>
+const B=[
+["Genèse",50,"Moïse (trad.) · origines du monde et des patriarches, Abraham vers 2000 av. J.-C."],
+["Exode",40,"Sortie d’Égypte, vers le XVe ou XIIIe s. av. J.-C. (date débattue) ; alliance au Sinaï"],
+["Lévitique",27,"Lois et sacrifices donnés au Sinaï"],
+["Nombres",36,"Quarante ans de marche dans le désert"],
+["Deutéronome",34,"Derniers discours de Moïse avant l’entrée en Canaan"],
+["Josué",24,"Conquête et partage de Canaan, XIIIe–XIIe s. av. J.-C."],
+["Juges",21,"Période des Juges, vers 1200–1050 av. J.-C."],
+["Ruth",4,"Époque des Juges ; Ruth est ancêtre de David"],
+["1 Samuel",31,"Samuel, Saül, début de David, vers 1100–1010 av. J.-C."],
+["2 Samuel",24,"Règne de David, vers 1010–970 av. J.-C."],
+["1 Rois",22,"Salomon, temple, division du royaume en 931 av. J.-C."],
+["2 Rois",25,"Chute d’Israël (722) puis de Juda (586 av. J.-C.)"],
+["1 Chroniques",29,"Généalogies et règne de David, relus après l’exil"],
+["2 Chroniques",36,"De Salomon à l’exil, jusqu’à l’édit de Cyrus (538)"],
+["Esdras",10,"Retour d’exil, second temple, vers 538–458 av. J.-C."],
+["Néhémie",13,"Reconstruction des murailles de Jérusalem, vers 445 av. J.-C."],
+["Esther",10,"Empire perse, règne d’Assuérus (Xerxès Ier), vers 486–465 av. J.-C."],
+["Job",42,"Livre de sagesse, cadre patriarcal"],
+["Psaumes",150,"Recueil de chants, surtout de David, Xe–Ve s. av. J.-C."],
+["Proverbes",31,"Sagesse de Salomon et d’autres sages"],
+["Ecclésiaste",12,"Réflexion attribuée à Salomon"],
+["Cantique des cantiques",8,"Poème attribué à Salomon"],
+["Ésaïe",66,"Prophète à Jérusalem, vers 740–700 av. J.-C., face à l’Assyrie"],
+["Jérémie",52,"Derniers temps de Juda, chute de Jérusalem en 586 av. J.-C."],
+["Lamentations",5,"Deuil après la prise de Jérusalem, 586 av. J.-C."],
+["Ézéchiel",48,"Prophète en exil à Babylone, vers 593–571 av. J.-C."],
+["Daniel",12,"Exil à Babylone puis Perse, VIe s. av. J.-C."],
+["Osée",14,"Royaume du Nord, vers 750–720 av. J.-C."],
+["Joël",3,"Date débattue ; appel à la repentance"],
+["Amos",9,"Royaume du Nord, vers 760 av. J.-C."],
+["Abdias",1,"Contre Édom, après 586 av. J.-C."],
+["Jonas",4,"Mission à Ninive, VIIIe s. av. J.-C."],
+["Michée",7,"Vers 735–700 av. J.-C. ; annonce Bethléem"],
+["Nahum",3,"Chute de Ninive, 612 av. J.-C."],
+["Habacuc",3,"Vers 610–600 av. J.-C., menace babylonienne"],
+["Sophonie",3,"Vers 630 av. J.-C., règne de Josias"],
+["Aggée",2,"520 av. J.-C., reconstruction du temple"],
+["Zacharie",14,"520–518 av. J.-C., retour d’exil"],
+["Malachie",4,"Vers 450–430 av. J.-C., dernier livre prophétique"],
+["Matthieu",28,"Évangile pour lecteurs juifs, vers 60–80 ap. J.-C."],
+["Marc",16,"Évangile le plus court, vers 55–70, lié à Pierre"],
+["Luc",24,"Médecin et historien, vers 60–80 ; auteur aussi des Actes"],
+["Jean",21,"Évangile écrit vers 85–95, Éphèse"],
+["Actes",28,"Naissance de l’Église, vers 30–62, par Luc"],
+["Romains",16,"Lettre de Paul, vers 57, écrite de Corinthe"],
+["1 Corinthiens",16,"Paul, vers 55, depuis Éphèse"],
+["2 Corinthiens",13,"Paul, vers 56, en Macédoine"],
+["Galates",6,"Paul, vers 48–55"],
+["Éphésiens",6,"Paul en prison à Rome, vers 60–62"],
+["Philippiens",4,"Paul en prison, vers 60–62"],
+["Colossiens",4,"Paul en prison, vers 60–62"],
+["1 Thessaloniciens",5,"Paul, vers 50–51, depuis Corinthe"],
+["2 Thessaloniciens",3,"Paul, vers 51"],
+["1 Timothée",6,"Paul, vers 62–65"],
+["2 Timothée",4,"Dernière lettre de Paul, vers 65–67"],
+["Tite",3,"Paul, vers 62–65"],
+["Philémon",1,"Paul, vers 60–62"],
+["Hébreux",13,"Auteur incertain, avant 70 ap. J.-C. probablement"],
+["Jacques",5,"Frère de Jésus, vers 45–62"],
+["1 Pierre",5,"Vers 62–64, depuis Rome"],
+["2 Pierre",3,"Vers 64–68"],
+["1 Jean",5,"Vers 85–95"],
+["2 Jean",1,"Lettre de l’apôtre Jean, vers 85–95"],
+["3 Jean",1,"Lettre de l’apôtre Jean, vers 85–95"],
+["Jude",1,"Frère de Jacques, vers 65–80"],
+["Apocalypse",22,"Jean à Patmos, vers 90–95, sous Domitien"]
+];
+// [livre, chapitre, v1, v2, titre, note]
+const M=[
+[23,9,5,5,"Un enfant nommé « Dieu puissant »","Prophétie d’un enfant à naître appelé « Dieu puissant » et « Père éternel »."],
+[33,5,1,1,"Origine éternelle","Le chef qui naîtra à Bethléem a des origines « depuis les jours de l’éternité » ; Matthieu 2 applique ce texte à Jésus."],
+[38,12,10,10,"« Celui qu’ils ont percé »","Dieu parle de lui-même : « ils regarderont vers moi, celui qu’ils ont percé ». Jean 19:37 l’applique à Jésus en croix."],
+[40,1,23,23,"Emmanuel","Emmanuel signifie « Dieu avec nous »."],
+[41,2,5,7,"Il pardonne les péchés","Jésus pardonne les péchés ; les scribes objectent que Dieu seul le peut, et Jésus ne corrige pas leur principe."],
+[40,28,18,20,"Autorité et baptême","Toute autorité au ciel et sur la terre ; baptême au nom unique du Père, du Fils et du Saint-Esprit."],
+[43,1,1,3,"La Parole est Dieu","La Parole est auprès de Dieu, est Dieu, et tout a été fait par elle."],
+[43,1,14,14,"La Parole faite chair","La Parole devient un homme et habite parmi nous."],
+[43,5,17,18,"Égal à Dieu","Les chefs veulent le tuer parce qu’il appelle Dieu son propre Père, se faisant égal à Dieu."],
+[43,8,56,59,"« Avant qu’Abraham fût, je suis »","Reprise du nom divin de l’Exode (« Je suis ») ; la foule prend des pierres pour le lapider."],
+[43,10,30,33,"« Moi et le Père nous sommes un »","Les Juifs comprennent la phrase comme une prétention divine et l’accusent de blasphème."],
+[43,12,37,41,"Il a vu sa gloire","Jean dit qu’Ésaïe a vu la gloire de Jésus, alors qu’Ésaïe 6 décrit la vision du Seigneur."],
+[43,14,6,9,"« Qui m’a vu a vu le Père »","Jésus se présente comme le chemin vers le Père et comme sa révélation visible."],
+[43,17,5,5,"Gloire avant la création","Jésus demande la gloire qu’il avait auprès du Père avant que le monde fût."],
+[43,20,28,29,"« Mon Seigneur et mon Dieu ! »","Thomas s’adresse ainsi à Jésus ressuscité, qui accepte et le bénit."],
+[44,20,28,28,"Le sang de Dieu","L’Église de Dieu acquise par « son propre sang »."],
+[45,9,5,5,"Dieu béni éternellement","Selon cette traduction, le Christ est « Dieu béni éternellement »."],
+[50,2,5,11,"Forme de Dieu","Il est en forme de Dieu, s’abaisse, puis tout genou fléchira devant lui, texte qui reprend Ésaïe 45 sur le Dieu unique."],
+[51,1,15,20,"Image du Dieu invisible","Créateur de toutes choses, tout subsiste en lui."],
+[51,2,9,9,"Toute la plénitude","En lui habite corporellement toute la plénitude de la divinité."],
+[56,2,13,13,"Grand Dieu et Sauveur","« Notre grand Dieu et Sauveur Jésus-Christ »."],
+[58,1,3,3,"Reflet de la gloire de Dieu","Il soutient toutes choses par sa parole puissante."],
+[58,1,8,8,"« Ton trône, ô Dieu »","Le Père s’adresse au Fils en l’appelant Dieu (citation du Psaume 45)."],
+[58,13,8,8,"Le même éternellement","Jésus-Christ est le même hier, aujourd’hui et éternellement."],
+[61,1,1,1,"Dieu et Sauveur","« Notre Dieu et le Sauveur Jésus-Christ »."],
+[62,5,20,20,"Le Dieu véritable","« Il est le Dieu véritable, et la vie éternelle »."],
+[66,1,17,18,"Le premier et le dernier","Titres que l’Ancien Testament réserve à Dieu (Ésaïe 44:6), ici dits de Jésus vivant."],
+[66,22,12,13,"Alpha et Oméga","Jésus qui vient se donne les titres d’Alpha et Oméga, le premier et le dernier."]
+];
+const T=[
+["~2000 av. J.-C.","Appel d’Abraham","Abraham quitte la Mésopotamie sur l’appel de Dieu et gagne Canaan, avec la promesse d’une descendance et d’une terre (Genèse 12). C’est l’origine du peuple d’Israël et d’une foi commune au judaïsme, au christianisme et à l’islam. La date vient de la chronologie biblique et reste approximative."],
+["~1446 ou ~1260 av. J.-C.","Exode d’Égypte","Moïse conduit les Hébreux hors d’Égypte où ils étaient asservis ; ils traversent la mer, puis reçoivent la Loi et l’alliance au Sinaï (Exode 12 à 20). La date est débattue : ~1446 selon 1 Rois 6:1 pris à la lettre, ~1260 sous Ramsès II selon d’autres. Aucun texte égyptien ne mentionne directement l’événement."],
+["~1000 av. J.-C.","David roi à Jérusalem","David règne sur Juda puis sur tout Israël, prend Jérusalem aux Jébusiens et en fait sa capitale (2 Samuel 5). La promesse faite à sa dynastie (2 Samuel 7) nourrit l’attente d’un Messie « fils de David ». Une inscription de Tel Dan (IXe s.) mentionne la « maison de David »."],
+["~960 av. J.-C.","Salomon bâtit le premier temple","Salomon construit à Jérusalem le temple, lieu central du culte d’Israël (1 Rois 6). Son règne est marqué par le commerce, les alliances et la réputation de sagesse (1 Rois 3 à 10). On n’a retrouvé aucune trace archéologique directe de ce temple."],
+["931 av. J.-C.","Division du royaume","À la mort de Salomon, son fils Roboam refuse d’alléger les charges ; dix tribus se détachent sous Jéroboam (1 Rois 12). Le royaume du nord, Israël, a Samarie pour capitale ; celui du sud, Juda, garde Jérusalem et la lignée de David."],
+["722 av. J.-C.","Chute de Samarie","L’Assyrie prend Samarie et déporte une partie de la population ; le royaume du nord disparaît (2 Rois 17). Les annales assyriennes racontent elles-mêmes ces conquêtes. Les peuples installés ensuite sur place sont à l’origine des Samaritains."],
+["586 av. J.-C.","Destruction de Jérusalem, exil","Nabuchodonosor de Babylone prend Jérusalem, brûle le temple et déporte l’élite de Juda (2 Rois 25) ; une première déportation avait eu lieu en 597. Une chronique babylonienne confirme la prise de 597. Jérémie, Ézéchiel et les Lamentations viennent de cette époque."],
+["538 av. J.-C.","Édit de Cyrus, retour d’exil","Cyrus de Perse prend Babylone et autorise les captifs à rentrer chez eux et à rebâtir le temple (Esdras 1). Le « cylindre de Cyrus » montre qu’il rendait ainsi à plusieurs peuples leurs dieux et leurs exilés."],
+["516 av. J.-C.","Second temple","Sous Zorobabel, et avec l’appui des prophètes Aggée et Zacharie, le temple est achevé (Esdras 6). Il est plus modeste que celui de Salomon, et restera en place jusqu’à Hérode, qui le rénovera."],
+["~250–150 av. J.-C.","La Septante","À Alexandrie, les Écritures hébraïques sont traduites en grec pour les Juifs qui ne lisent plus l’hébreu. C’est la version que citent le plus souvent les auteurs du Nouveau Testament."],
+["167–164 av. J.-C.","Révolte des Maccabées","Antiochus IV impose le culte grec et profane le temple. Judas Maccabée mène la révolte et purifie le temple en 164, fête rappelée par Hanoucca. Ce récit est dans les livres des Maccabées, absents de la Bible Louis Segond."],
+["63 av. J.-C.","Pompée prend Jérusalem","Rome intervient dans une guerre entre deux prétendants au trône ; Pompée entre dans Jérusalem et la Judée passe sous influence romaine. C’est le cadre politique où naît Jésus."],
+["~6–4 av. J.-C.","Naissance de Jésus","Jésus naît à Bethléem sous Hérode le Grand (Matthieu 2 ; Luc 2). Hérode meurt en 4 av. J.-C., donc la naissance est antérieure. Notre calendrier, fixé au VIe siècle par Denys le Petit, comporte une erreur de quelques années."],
+["~27–30 ap. J.-C.","Ministère de Jésus","Après son baptême par Jean-Baptiste (Luc 3:1 le situe vers la 15e année de Tibère), Jésus enseigne en Galilée et en Judée, appelle douze disciples et parle en paraboles. Les évangiles rapportent des guérisons et un enseignement sur le Royaume de Dieu."],
+["~30 ou 33","Crucifixion et résurrection","Jésus est crucifié à Jérusalem sous Ponce Pilate, préfet de Judée de 26 à 36, au moment de la Pâque. Tacite et Flavius Josèphe mentionnent son exécution. Les évangiles disent qu’il est ressuscité le troisième jour, ce que les chrétiens tiennent pour le cœur de leur foi."],
+["~33–35","Conversion de Paul","Saul de Tarse, qui persécutait les chrétiens, a sur la route de Damas une vision du Christ (Actes 9). Il devient Paul, l’apôtre des nations."],
+["~46–62","Voyages de Paul","Paul fonde des Églises en Asie Mineure et en Grèce (Actes 13 à 28). Ses lettres sont les plus anciens écrits du Nouveau Testament (1 Thessaloniciens vers 50). Vers 49, le concile de Jérusalem décide d’ouvrir l’Église aux non-Juifs (Actes 15)."],
+["64","Persécution sous Néron","Après l’incendie de Rome, Néron accuse les chrétiens, selon Tacite (Annales 15). La tradition place à cette époque la mort de Pierre et de Paul à Rome."],
+["70","Destruction du temple","La révolte juive de 66 est écrasée : Titus prend Jérusalem et détruit le temple, qui n’a jamais été reconstruit. Jésus l’avait annoncé (Marc 13:2). L’arc de Titus à Rome en garde le souvenir. Le judaïsme se recentre alors sur la Torah et la synagogue."],
+["~95","Apocalypse","Jean, exilé à Patmos, écrit aux Églises d’Asie sous Domitien, qui exigeait le culte de l’empereur (Apocalypse 1:9). Le livre veut consoler les chrétiens persécutés en annonçant la victoire du Christ."],
+["325","Concile de Nicée","L’empereur Constantin réunit les évêques. Contre Arius, qui disait que le Fils est créé, le concile affirme qu’il est « de même nature » que le Père et rédige le credo de Nicée. Le débat a continué des décennies après."],
+["451","Concile de Chalcédoine","Le concile précise que le Christ est une seule personne en deux natures, divine et humaine. Plusieurs Églises orientales (coptes, arménienne, syriaque) ne l’ont pas suivi."]
+];
+const $=id=>document.getElementById(id);
+let bk=43,ch=1,marksOn=true,queue=[],qi=0,playing=false,token=0,cur=null;
+try{const p=JSON.parse(localStorage.getItem('lsg_pos'));if(p){bk=p.b;ch=p.c}}catch(e){}
+const bkS=$('bk'),chS=$('ch');
+B.forEach((b,i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=b[0];bkS.appendChild(o)});
+function fillCh(){chS.innerHTML='';for(let i=1;i<=B[bk-1][1];i++){const o=document.createElement('option');o.value=i;o.textContent='Chapitre '+i;chS.appendChild(o)}}
+T.forEach(t=>{const d=document.createElement('div');d.innerHTML='<b></b> — <b></b><p style="margin:4px 0 0;font-size:15px"></p>';d.children[0].textContent=t[0];d.children[1].textContent=t[1];d.children[1].style.color='var(--ink)';d.children[2].textContent=t[2];$('tl').appendChild(d)});
+const dl=$('dlist');
+M.forEach(m=>{const d=document.createElement('div');d.className='item';const ref=B[m[0]-1][0]+' '+m[1]+':'+m[2]+(m[3]>m[2]?'-'+m[3]:'');d.innerHTML='<b></b><br><small></small><div></div>';d.children[0].textContent=m[4];d.children[2].textContent=ref;d.children[3].style.cssText='font-size:14px;margin-top:4px';d.children[3].textContent=m[5];d.onclick=()=>{bk=m[0];ch=m[1];tab('lire');go(m[2])};dl.appendChild(d)});
+function tab(t){['lire','dieu','hist','carte'].forEach(x=>{$('t-'+x).classList.toggle('hide',x!==t)});document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));if(t==='carte')initMap()}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+async function getChap(b,c){
+ const k='lsg:'+b+':'+c;
+ try{const s=localStorage.getItem(k);if(s)return JSON.parse(s)}catch(e){}
+ const urls=['https://api.getbible.net/v2/ls1910/'+b+'/'+c+'.json','https://getbible.net/v2/ls1910/'+b+'/'+c+'.json'];
+ let last;
+ for(const u of urls){try{const r=await fetch(u);if(!r.ok)throw new Error(r.status);const j=await r.json();const v=(j.verses||[]).map(x=>[x.verse,String(x.text).trim()]);if(!v.length)throw new Error('vide');try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}return v}catch(e){last=e}}
+ throw last;
+}
+async function go(scrollV){
+ stopSpeech();
+ bkS.value=bk;fillCh();chS.value=ch;
+ try{localStorage.setItem('lsg_pos',JSON.stringify({b:bk,c:ch}))}catch(e){}
+ $('info').textContent=B[bk-1][0]+' — '+B[bk-1][2];$('info2').textContent=B[bk-1][0]+' — '+B[bk-1][2];
+ const box=$('text');box.innerHTML='<div class="msg">Chargement…</div>';
+ let v;
+ try{v=await getChap(bk,ch)}catch(e){box.innerHTML='<div class="msg">Impossible de charger ce chapitre. Vérifiez la connexion Internet (le texte est chargé en ligne, puis gardé en mémoire pour les prochaines lectures).</div>';return}
+ box.innerHTML='';
+ const h=document.createElement('h2');h.textContent=B[bk-1][0]+' — chapitre '+ch;box.appendChild(h);
+ const ms=M.filter(m=>m[0]===bk&&m[1]===ch);
+ v.forEach(([n,t])=>{
+  const d=document.createElement('div');d.className='v';d.dataset.v=n;
+  const sp=document.createElement('span');sp.className='n';sp.textContent=n;
+  const tx=document.createElement('span');tx.className='t';tx.textContent=t;
+  d.append(sp,tx);
+  const m=ms.find(m=>n>=m[2]&&n<=m[3]);
+  if(m){d.classList.add('mk');d.dataset.mk=1}
+  box.appendChild(d);
+  const e=ms.find(m=>n===m[3]);
+  if(e){const nb=document.createElement('div');nb.className='note';nb.dataset.mk=1;nb.innerHTML='<b>✦ </b><b></b><div></div>';nb.children[1].textContent=e[4];nb.children[2].textContent=e[5];box.appendChild(nb)}
+ });
+ applyMarks();
+ queue=[...box.querySelectorAll('.v')];qi=0;
+ if(scrollV){const el=box.querySelector('.v[data-v="'+scrollV+'"]');if(el)el.scrollIntoView({block:'center'})}else window.scrollTo(0,0);
+ getChap(...next(bk,ch)).catch(()=>{});
+}
+function next(b,c){if(c<B[b-1][1])return[b,c+1];if(b<66)return[b+1,1];return[1,1]}
+function prev(b,c){if(c>1)return[b,c-1];if(b>1)return[b-1,B[b-2][1]];return[66,22]}
+function applyMarks(){document.querySelectorAll('.v.mk').forEach(e=>e.style.background=marksOn?'':'transparent');document.querySelectorAll('.note').forEach(e=>e.style.display=marksOn?'':'none')}
+$('mkb').onclick=()=>{marksOn=!marksOn;$('mkb').classList.toggle('on',marksOn);applyMarks()};
+bkS.onchange=()=>{bk=+bkS.value;ch=1;go()};
+chS.onchange=()=>{ch=+chS.value;go()};
+$('nx').onclick=()=>{[bk,ch]=next(bk,ch);go()};
+$('pv').onclick=()=>{[bk,ch]=prev(bk,ch);go()};
+// Lecture
+function pickVoice(){const vs=speechSynthesis.getVoices();return vs.find(v=>v.lang&&v.lang.toLowerCase().startsWith('fr'))||null}
+function speak(txt){return new Promise(res=>{const u=new SpeechSynthesisUtterance(txt);u.lang='fr-FR';const v=pickVoice();if(v)u.voice=v;u.rate=+$('rate').value;u.onend=res;u.onerror=res;speechSynthesis.speak(u)})}
+function stopSpeech(){token++;playing=false;if('speechSynthesis' in window)speechSynthesis.cancel();if(cur)cur.classList.remove('cur');$('play').textContent='▶ Lecture auto'}
+async function playLoop(){
+ if(!('speechSynthesis' in window)){alert('La lecture vocale n’est pas disponible sur ce navigateur.');return}
+ const my=++token;playing=true;$('play').textContent='🔊 En lecture…';
+ if(qi===0){await speak(B[bk-1][0]+', chapitre '+ch);}
+ while(my===token){
+  if(qi>=queue.length){
+   [bk,ch]=next(bk,ch);
+   await go();
+   if(my!==token&&!playing)return;
+   token=my;playing=true;
+   if(!queue.length)break;
+   $('play').textContent='🔊 En lecture…';
+   await speak(B[bk-1][0]+', chapitre '+ch);
+   if(my!==token)return;
+  }
+  const el=queue[qi];
+  if(cur)cur.classList.remove('cur');
+  cur=el;el.classList.add('cur');el.scrollIntoView({block:'center',behavior:'smooth'});
+  await speak(el.querySelector('.t').textContent);
+  if(my!==token)return;
+  if($('rn').checked&&el.nextElementSibling&&el.nextElementSibling.classList.contains('note')){await speak('Note. '+el.nextElementSibling.children[1].textContent+'. '+el.nextElementSibling.children[2].textContent);if(my!==token)return}
+  qi++;
+ }
+}
+$('play').onclick=()=>{if(playing)return;if(speechSynthesis.paused){speechSynthesis.resume();playing=true;$('play').textContent='🔊 En lecture…';return}tab('lire');playLoop()};
+$('pause').onclick=()=>{if(playing){speechSynthesis.pause();playing=false;$('play').textContent='▶ Reprendre'}};
+$('stop').onclick=()=>{stopSpeech();qi=0};
+if('speechSynthesis' in window)speechSynthesis.onvoiceschanged=()=>{};
+const P=[
+["Our des Chaldéens","ville",30.96,46.10,"Ville de Mésopotamie d’où part Abraham",1,11],
+["Harran","ville",36.86,39.03,"Étape d’Abraham avant de gagner Canaan",1,12],
+["Babylone","ville",32.54,44.42,"Capitale de l’exil, de Nabuchodonosor et de Daniel",27,1],
+["Ninive","ville",36.36,43.15,"Capitale assyrienne, ville de la mission de Jonas",32,1],
+["Suse","ville",32.19,48.26,"Capitale perse, palais d’Esther",17,1],
+["Memphis","ville",29.85,31.25,"Ancienne capitale d’Égypte (Noph)",23,19],
+["Ramsès","ville",30.80,31.83,"Ville de corvée des Hébreux, départ de l’Exode",2,12],
+["Gosen","autre",30.60,31.90,"Région du delta du Nil où s’installent Jacob et ses fils",1,47],
+["Thèbes","ville",25.72,32.66,"Grande ville de Haute-Égypte (No-Amon)",34,3],
+["Mont Sinaï","mont",28.54,33.98,"Montagne où Moïse reçoit la Loi (identification traditionnelle)",2,19],
+["Traversée de la mer Rouge","eau",30.20,32.55,"Passage de la mer par les Hébreux (lieu exact incertain)",2,14],
+["Kadès-Barnéa","autre",30.69,34.42,"Oasis où Israël séjourne longtemps dans le désert",4,13],
+["Mont Nebo","mont",31.77,35.73,"Moïse y voit la terre promise et y meurt",5,34],
+["Étsjon-Guéber","ville",29.53,35.00,"Port de Salomon sur la mer Rouge",11,9],
+["Mont Ararat","mont",39.70,44.30,"Région où se pose l’arche de Noé",1,8],
+["Damas","ville",33.51,36.28,"Ville de Syrie, conversion de Paul sur le chemin",44,9],
+["Tyr","ville",33.27,35.20,"Grande cité phénicienne, puissance commerciale",26,26],
+["Sidon","ville",33.56,35.37,"Cité phénicienne, patrie de Jézabel",11,16],
+["Antioche de Syrie","ville",36.20,36.16,"Les disciples y sont appelés chrétiens pour la première fois",44,11],
+["Tarse","ville",36.92,34.89,"Ville natale de Paul",44,21],
+["Éphèse","ville",37.94,27.34,"Grande cité d’Asie, Paul y reste trois ans",44,19],
+["Smyrne","ville",38.42,27.14,"Une des sept Églises de l’Apocalypse",66,2],
+["Pergame","ville",39.13,27.18,"Une des sept Églises de l’Apocalypse",66,2],
+["Thyatire","ville",38.92,27.84,"Une des sept Églises de l’Apocalypse",66,2],
+["Sardes","ville",38.49,28.04,"Une des sept Églises de l’Apocalypse",66,3],
+["Philadelphie","ville",38.35,28.52,"Une des sept Églises de l’Apocalypse",66,3],
+["Laodicée","ville",37.84,29.11,"Une des sept Églises de l’Apocalypse",66,3],
+["Colosses","ville",37.79,29.26,"Ville de l’Église à qui Paul écrit",51,1],
+["Patmos","autre",37.31,26.55,"Île de l’exil de Jean, où il reçoit l’Apocalypse",66,1],
+["Antioche de Pisidie","ville",38.30,31.19,"Paul y prêche dans la synagogue",44,13],
+["Iconium","ville",37.87,32.49,"Étape du premier voyage de Paul",44,14],
+["Lystre","ville",37.57,32.33,"Paul y est lapidé ; Timothée y vit",44,14],
+["Derbe","ville",37.35,33.37,"Fin du premier voyage de Paul",44,14],
+["Paphos (Chypre)","ville",34.76,32.41,"Paul y rencontre le proconsul Sergius Paulus",44,13],
+["Troas","ville",39.76,26.16,"Port où Paul a la vision de l’homme de Macédoine",44,16],
+["Philippes","ville",41.01,24.29,"Première Église d’Europe, destinataire d’une lettre de Paul",44,16],
+["Thessalonique","ville",40.64,22.94,"Église à qui Paul écrit deux lettres",44,17],
+["Bérée","ville",40.52,22.20,"Les habitants examinent chaque jour les Écritures",44,17],
+["Athènes","ville",37.97,23.73,"Discours de Paul devant l’Aréopage",44,17],
+["Corinthe","ville",37.91,22.88,"Paul y reste dix-huit mois ; deux lettres lui sont adressées",44,18],
+["Rome","ville",41.89,12.49,"Capitale de l’empire, Paul y arrive prisonnier",44,28],
+["Malte","autre",35.95,14.40,"Naufrage de Paul",44,28],
+["Crète","autre",35.20,24.90,"Île où Paul laisse Tite",56,1],
+["Alexandrie","ville",31.20,29.92,"Grande ville d’Égypte, patrie d’Apollos",44,18],
+["Cyrène","ville",32.82,21.86,"Ville de Simon, qui porte la croix de Jésus",40,27],
+["Jérusalem","ville",31.778,35.235,"Capitale de David, temple, crucifixion et résurrection de Jésus",10,5],
+["Bethléem","ville",31.704,35.207,"Ville de David et lieu de naissance de Jésus",42,2],
+["Nazareth","ville",32.70,35.30,"Village où Jésus grandit",42,1],
+["Capernaüm","ville",32.88,35.575,"Centre du ministère de Jésus en Galilée",40,4],
+["Cana","ville",32.747,35.34,"Premier miracle de Jésus : l’eau changée en vin",43,2],
+["Mer de Galilée","eau",32.82,35.59,"Lac où Jésus appelle ses premiers disciples et marche sur l’eau",40,4],
+["Tibériade","ville",32.79,35.53,"Ville au bord du lac, fondée par Hérode Antipas",43,6],
+["Bethsaïda","ville",32.91,35.63,"Ville de Pierre, André et Philippe",43,1],
+["Césarée de Philippe","ville",33.25,35.69,"Pierre y confesse que Jésus est le Christ",40,16],
+["Mont Hermon","mont",33.42,35.86,"Haute montagne au nord du pays",5,3],
+["Mont Thabor","mont",32.69,35.39,"Débora et Barak y rassemblent les tribus ; tradition de la Transfiguration",7,4],
+["Mont Carmel","mont",32.74,35.04,"Élie y défie les prophètes de Baal",11,18],
+["Césarée maritime","ville",32.50,34.89,"Port romain où se convertit le centurion Corneille",44,10],
+["Joppé","ville",32.05,34.75,"Port où Pierre a la vision ; d’où part Jonas",44,10],
+["Sichem","ville",32.21,35.28,"Abraham y bâtit un autel ; assemblée de Josué",1,12],
+["Samarie","ville",32.28,35.19,"Capitale du royaume du nord",11,16],
+["Sychar (puits de Jacob)","ville",32.21,35.26,"Jésus y parle à la Samaritaine",43,4],
+["Béthel","ville",31.93,35.22,"Songe de Jacob et de l’échelle",1,28],
+["Guilgal","ville",31.85,35.47,"Premier camp d’Israël en Canaan",6,4],
+["Jéricho","ville",31.871,35.444,"Ville dont les murailles tombent devant Josué",6,6],
+["Mont Garizim","mont",32.20,35.27,"Mont de la bénédiction, sanctuaire des Samaritains",5,11],
+["Mont Ébal","mont",32.24,35.26,"Mont de la malédiction, autel de Josué",5,27],
+["Silo","ville",32.055,35.29,"Sanctuaire où Samuel est consacré",9,1],
+["Gabaon","ville",31.85,35.18,"Les habitants trompent Josué ; Salomon y demande la sagesse",6,9],
+["Hébron","ville",31.53,35.10,"Abraham y enterre Sara ; première capitale de David",1,23],
+["Beer-Schéba","ville",31.25,34.79,"Limite sud du pays : de Dan à Beer-Schéba",1,21],
+["Mer Morte","eau",31.50,35.50,"La « mer Salée », près de Sodome et Gomorrhe",1,14],
+["Jourdain (baptême)","eau",31.84,35.55,"Jésus y est baptisé par Jean",41,1],
+["Béthanie","ville",31.77,35.26,"Village de Marthe, Marie et Lazare",43,11],
+["Mont des Oliviers","mont",31.78,35.245,"Enseignement de Jésus ; lieu de l’ascension",44,1],
+["Gethsémané","autre",31.779,35.24,"Jardin où Jésus prie avant son arrestation",40,26],
+["Golgotha","autre",31.78,35.23,"Lieu de la crucifixion",43,19],
+["Gaza","ville",31.50,34.47,"Ville philistine, mort de Samson",7,16],
+["Askalon","ville",31.66,34.55,"Une des cinq cités philistines",7,14],
+["Gath","ville",31.70,34.85,"Ville du géant Goliath",9,17],
+["Ékron","ville",31.78,34.84,"Ville philistine où l’arche est amenée",9,5],
+["Méguiddo","ville",32.585,35.18,"Place forte ; son nom donne Harmaguédon",66,16],
+["Jizréel","ville",32.56,35.32,"Vigne de Naboth, palais d’Achab",11,21],
+["Dan","ville",33.25,35.65,"Ville la plus au nord d’Israël",7,18],
+["Hatsor","ville",33.02,35.57,"Grande cité cananéenne détruite par Josué",6,11],
+["Lakis","ville",31.565,34.85,"Ville fortifiée de Juda, assiégée par Sanchérib",12,18],
+["Naïn","ville",32.63,35.35,"Jésus y ressuscite le fils d’une veuve",42,7],
+["Magdala","ville",32.83,35.52,"Ville de Marie de Magdala",40,15],
+["Chorazin","ville",32.91,35.56,"Jésus y reproche son incrédulité",40,11],
+["Sarepta","ville",33.46,35.29,"Élie chez la veuve",11,17],
+["Rabba (Amman)","ville",31.95,35.93,"Capitale des Ammonites",10,11],
+["Gadara","ville",32.65,35.68,"Guérison des possédés",40,8],
+["Péniel","autre",32.19,35.71,"Jacob y lutte avec Dieu (site incertain)",1,32]
+];
+const KX=16.8,KY=20,W=46*KX,H=24*KY;
+const COL={ville:'#b8860b',mont:'#7a1f1f',eau:'#1f5f9a',autre:'#2e7d32'};
+const CAT={ville:'Villes',mont:'Montagnes',eau:'Eaux',autre:'Autres sites'};
+const pj=(la,ln)=>[(ln-8)*KX,(46-la)*KY];
+const poly=a=>a.map(p=>pj(p[0],p[1]).map(v=>v.toFixed(1)).join(',')).join(' ');
+const MED=[[36.9,4],[36.9,6.9],[36.9,7.77],[37.27,9.87],[37.07,11.05],[36.4,10.6],[35.8,10.65],[34.7,10.75],[33.9,10.1],[33.5,11.1],[33.1,11.6],[32.93,12.08],[32.9,13.18],[32.64,14.3],[32.37,15.1],[31.2,16.6],[30.4,18.3],[30.4,19.6],[31.0,20.1],[32.12,20.07],[32.7,20.9],[32.9,21.97],[32.76,22.65],[32.08,23.97],[31.57,25.15],[31.35,27.2],[31.2,29.9],[31.45,30.4],[31.45,31.8],[31.27,32.3],[31.13,33.8],[31.5,34.45],[31.8,34.64],[32.05,34.75],[32.5,34.89],[32.82,34.98],[32.92,35.07],[33.27,35.2],[33.56,35.37],[33.9,35.5],[34.43,35.82],[34.9,35.88],[35.52,35.78],[36.07,35.95],[36.6,36.2],[36.55,35.4],[36.8,34.65],[36.4,33.9],[36.0,32.8],[36.5,32.0],[36.88,30.7],[36.3,30.15],[36.2,29.6],[36.62,29.1],[36.85,28.27],[37.03,27.43],[37.86,27.26],[38.3,26.3],[39.07,26.88],[39.3,26.7],[39.95,26.2],[40.04,26.18],[40.25,26.27],[40.5,26.72],[40.7,26.1],[40.85,25.87],[40.93,24.4],[40.65,24.0],[40.6,22.9],[40.1,22.6],[39.35,22.95],[38.9,23.1],[38.4,24.0],[37.65,24.0],[37.94,23.63],[37.9,23.0],[37.55,22.8],[36.69,23.04],[36.43,23.2],[36.38,22.48],[37.03,22.1],[36.92,21.7],[37.65,21.3],[38.25,21.7],[38.3,21.1],[38.95,20.75],[39.5,20.2],[40.45,19.5],[41.3,19.4],[41.8,19.4],[42.4,18.7],[42.65,18.1],[43.5,16.4],[44.1,15.2],[45.3,14.4],[44.87,13.85],[45.65,13.77],[45.4,12.35],[44.4,12.3],[43.6,13.5],[42.46,14.2],[42.0,15.0],[41.88,16.18],[41.63,15.92],[41.3,16.3],[41.12,16.87],[40.65,17.95],[40.15,18.5],[39.8,18.35],[40.05,17.98],[40.45,17.2],[40.0,16.7],[39.75,16.5],[39.08,17.13],[38.8,16.6],[38.25,16.25],[38.1,15.65],[38.68,15.9],[39.35,16.03],[40.07,15.6],[40.67,14.78],[40.83,14.25],[41.2,13.57],[41.45,12.62],[41.73,12.28],[42.1,11.8],[42.4,11.15],[42.93,10.5],[43.55,10.3],[44.1,9.8],[44.4,8.9],[44.3,8.45],[43.7,7.27],[43.1,5.9],[43.0,4.0]];
+const BS=[[41.2,29.1],[41.17,29.6],[41.45,31.8],[41.97,33.8],[42.03,35.15],[41.3,36.3],[40.9,38.4],[41.0,39.7],[41.0,40.5],[41.65,41.6],[42.15,41.67],[43.0,41.0],[43.6,39.7],[44.7,37.8],[45.35,36.6],[46.5,36.0],[47.5,36.0],[47.5,30.5],[46.5,30.7],[45.2,29.7],[44.2,28.65],[43.2,27.9],[42.5,27.5],[41.9,28.0]];
+const CRI=[[46.0,33.5],[45.35,32.5],[45.0,33.4],[44.6,33.5],[44.4,34.0],[45.0,35.4],[45.35,36.6],[45.5,35.0],[46.0,34.8]];
+const MARM=[[40.4,26.67],[40.65,27.4],[40.97,28.2],[41.02,28.97],[40.75,29.5],[40.72,29.95],[40.6,29.5],[40.4,29.1],[40.35,28.0]];
+const CAS=[[46.5,47.0],[45.0,47.2],[43.0,47.5],[42.07,48.3],[41.0,49.0],[40.35,50.2],[39.4,49.4],[38.75,48.85],[38.4,48.9],[37.47,49.46],[36.9,50.7],[36.7,52.65],[36.7,54.6],[46.5,54.6]];
+const PG=[[30.2,48.7],[29.9,49.3],[28.9,50.8],[28.2,51.6],[27.5,52.6],[27.0,53.8],[26.6,55.0],[26.6,56.3],[25.8,56.3],[25.27,55.3],[24.45,54.4],[24.1,52.0],[24.6,51.5],[25.3,51.6],[26.15,51.2],[25.9,50.8],[26.4,50.1],[27.0,49.7],[28.0,48.8],[28.9,48.4],[29.4,48.1],[29.9,48.1]];
+const RS=[[29.97,32.55],[29.6,32.33],[29.1,32.66],[28.36,33.08],[27.26,33.81],[26.1,34.28],[25.07,34.9],[23.9,35.5],[22.3,36.3],[20.0,37.2],[17.0,38.5],[14.0,40.5],[12.6,43.3],[12.7,43.5],[14.5,42.6],[16.9,42.55],[19.0,41.0],[21.5,39.15],[24.1,38.05],[26.2,36.45],[27.35,35.7],[28.0,35.2],[28.5,34.95],[29.28,34.95],[29.53,35.0],[29.5,34.88],[28.5,34.5],[27.9,34.3],[27.73,34.25],[28.24,33.62],[28.9,33.2],[29.05,33.1],[29.59,32.7]];
+const SIC=[[38.0,12.45],[38.2,13.4],[38.3,15.65],[37.5,15.2],[36.7,15.1],[36.8,14.4],[37.5,12.6]];
+const SAR=[[41.2,9.2],[40.2,9.7],[39.2,9.6],[38.95,8.95],[39.2,8.4],[40.2,8.4],[41.0,8.2],[41.25,9.0]];
+const COR=[[42.98,9.35],[42.3,9.55],[41.4,9.2],[41.4,8.8],[42.0,8.6],[42.6,8.55],[43.0,9.0]];
+const CRE=[[35.6,23.6],[35.5,24.5],[35.3,25.5],[35.1,26.3],[35.0,25.5],[34.95,24.5],[35.25,23.6]];
+const CYP=[[35.07,32.3],[34.7,32.4],[34.65,33.1],[34.9,33.65],[35.15,34.0],[35.7,34.6],[35.35,33.3],[35.15,32.6]];
+const DEAD=[[31.77,35.47],[31.78,35.55],[31.5,35.58],[31.2,35.5],[31.05,35.45],[31.3,35.4],[31.6,35.4]];
+const GAL=[[32.88,35.55],[32.85,35.65],[32.72,35.58],[32.7,35.55],[32.8,35.5]];
+const RIV=[
+[[22.0,31.4],[22.35,31.6],[24.1,32.9],[25.7,32.65],[26.15,32.7],[27.2,31.2],[28.1,30.75],[30.05,31.25],[31.45,30.4]],
+[[30.05,31.25],[31.0,31.4],[31.45,31.8]],
+[[37.9,40.2],[36.35,43.1],[33.3,44.4],[32.5,45.8],[31.85,47.15],[31.0,47.45],[30.5,47.85],[30.2,48.7]],
+[[38.7,39.5],[37.0,38.0],[35.95,39.0],[35.3,40.15],[34.45,40.9],[33.4,43.3],[33.35,43.8],[32.54,44.42],[31.05,46.25],[31.0,47.45]],
+[[32.88,35.57],[32.55,35.55],[31.9,35.5],[31.77,35.55]]];
+const STR=[[[40.04,26.18],[40.4,26.67]],[[41.0,29.0],[41.2,29.1]]];
+const REG=[["ÉGYPTE",27,30],["LIBYE",29,18],["ASIE MINEURE",39,33],["GRÈCE",39.6,22],["ITALIE",42.6,12.6],["SYRIE",35.3,38.5],["ARABIE",26,40],["MÉSOPOTAMIE",34.3,44],["PERSE",33,50],["CANAAN",31.6,35.0],["MACÉDOINE",41.3,22],["ASIE",38.4,29]];
+const SEAL=[["Mer Méditerranée",34.4,19],["Mer Noire",43.6,34],["Mer Rouge",24.0,36.6],["Golfe Persique",27.1,50.3],["Mer Caspienne",40.2,52]];
+let svg=null,vb={x:0,y:0,w:W*0.7,h:0},mEls=[],lEls=[],rEls=[],selIdx=-1,catOn={ville:1,mont:1,eau:1,autre:1},qs='';
+const NS='http://www.w3.org/2000/svg';
+function el(n,a,p){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+function apply(){
+ const cw=svg.clientWidth||380,chh=svg.clientHeight||400;
+ vb.w=Math.max(W/14,Math.min(W,vb.w));vb.h=vb.w*chh/cw;
+ vb.y=vb.h>=H?(H-vb.h)/2:Math.max(0,Math.min(H-vb.h,vb.y));
+ vb.x=vb.w>=W?0:Math.max(0,Math.min(W-vb.w,vb.x));
+ svg.setAttribute('viewBox',vb.x+' '+vb.y+' '+vb.w+' '+vb.h);
+ const s=cw/vb.w;
+ mEls.forEach((m,i)=>{m.setAttribute('r',(i===selIdx?8:5.5)/s);m.setAttribute('stroke-width',1.5/s)});
+ lEls.forEach((t,i)=>{const p=pj(P[i][2],P[i][3]);t.setAttribute('font-size',11/s);t.setAttribute('x',p[0]+7/s);t.setAttribute('y',p[1]+4/s);t.setAttribute('stroke-width',3/s);t.style.display=(s>=1.7||i===selIdx)&&t.dataset.on==='1'?'':'none'});
+ rEls.forEach(t=>{t.setAttribute('font-size',(+t.dataset.k)/s);t.style.display=s<2.8?'':'none'});
+}
+function zoomAt(f,cx,cy){const r=svg.getBoundingClientRect();const fx=(cx-r.left)/r.width,fy=(cy-r.top)/r.height;const nw=Math.max(W/14,Math.min(W,vb.w*f));const k=nw/vb.w;vb.x+=(vb.w-nw)*fx;vb.y+=(vb.h-vb.h*k)*fy;vb.w=nw;apply()}
+function focusOn(x,y,w){vb.w=w;apply();vb.x=x-vb.w/2;vb.y=y-vb.h/2;apply()}
+function openPlace(p){bk=p[5];ch=p[6];tab('lire');go()}
+function selectPlace(i,center){
+ selIdx=i;const p=P[i];
+ const box=$('pinfo');box.innerHTML='';
+ const n=document.createElement('div');n.className='note';
+ const h=document.createElement('b');h.textContent=p[0];
+ const d=document.createElement('div');d.textContent=p[4];
+ const r=document.createElement('small');r.style.color='var(--mute)';r.textContent=B[p[5]-1][0]+' '+p[6];
+ const bt=document.createElement('button');bt.textContent='Lire le passage';bt.style.marginTop='6px';bt.onclick=()=>openPlace(p);
+ n.append(h,d,r,document.createElement('br'),bt);box.appendChild(n);
+ if(center){const q=pj(p[2],p[3]);focusOn(q[0],q[1],W/6)}else apply();
+}
+function refresh(){
+ const list=$('plist');list.innerHTML='';
+ const vis=[];
+ P.forEach((p,i)=>{const on=catOn[p[1]]&&p[0].toLowerCase().includes(qs);mEls[i].style.display=on?'':'none';lEls[i].dataset.on=on?'1':'0';if(on){vis.push(i);
+  const row=document.createElement('div');row.className='pl';
+  row.innerHTML='<span><span class="dot"></span><b></b></span><small></small>';
+  row.querySelector('.dot').style.background=COL[p[1]];row.querySelector('b').textContent=p[0];row.querySelector('small').textContent=B[p[5]-1][0]+' '+p[6];
+  row.onclick=()=>{window.scrollTo(0,0);selectPlace(i,true)};list.appendChild(row)}});
+ $('cnt').textContent=vis.length+' lieux';
+ if(qs&&vis.length){let a=1e9,b=1e9,c=-1e9,d=-1e9;vis.forEach(i=>{const q=pj(P[i][2],P[i][3]);a=Math.min(a,q[0]);c=Math.max(c,q[0]);b=Math.min(b,q[1]);d=Math.max(d,q[1])});focusOn((a+c)/2,(b+d)/2,Math.max(W/10,(c-a)*1.7+40))}else apply();
+}
+function initMap(){
+ if(svg){apply();return}
+ svg=$('map');
+ const defs=el('defs',{},svg);const cp=el('clipPath',{id:'cp'},defs);el('rect',{x:0,y:0,width:W,height:H},cp);
+ const base=el('g',{'clip-path':'url(#cp)'},svg);
+ el('rect',{x:0,y:0,width:W,height:H,fill:'var(--land)'},base);
+ const st={stroke:'var(--coast)','stroke-width':.8,'stroke-linejoin':'round','vector-effect':'non-scaling-stroke'};
+ [MED,BS,MARM,CAS,PG,RS,DEAD,GAL].forEach(a=>el('polygon',Object.assign({points:poly(a),fill:'var(--sea)'},st),base));
+ [SIC,SAR,COR,CRE,CYP,CRI].forEach(a=>el('polygon',Object.assign({points:poly(a),fill:'var(--land)'},st),base));
+ STR.forEach(a=>el('polyline',{points:poly(a),fill:'none',stroke:'var(--sea)','stroke-width':3,'vector-effect':'non-scaling-stroke'},base));
+ RIV.forEach(a=>el('polyline',{points:poly(a),fill:'none',stroke:'var(--river)','stroke-width':1.6,'stroke-linejoin':'round','vector-effect':'non-scaling-stroke'},base));
+ const gl=el('g',{},svg);
+ REG.forEach(r=>{const q=pj(r[1],r[2]);const t=el('text',{x:q[0],y:q[1],'text-anchor':'middle',fill:'var(--mute)','letter-spacing':'1',opacity:'.8'},gl);t.textContent=r[0];t.dataset.k=12;rEls.push(t)});
+ SEAL.forEach(r=>{const q=pj(r[1],r[2]);const t=el('text',{x:q[0],y:q[1],'text-anchor':'middle',fill:'#4a7fa8','font-style':'italic',opacity:'.9'},gl);t.textContent=r[0];t.dataset.k=11;rEls.push(t)});
+ const gm=el('g',{},svg);
+ P.forEach((p,i)=>{const q=pj(p[2],p[3]);
+  const c=el('circle',{cx:q[0],cy:q[1],r:5,fill:COL[p[1]],stroke:'#fff',style:'cursor:pointer'},gm);
+  const tt=el('title',{},c);tt.textContent=p[0];
+  c.addEventListener('click',()=>{if(moved>8)return;selectPlace(i,false)});
+  mEls.push(c);
+  const t=el('text',{x:q[0],y:q[1],fill:'var(--ink)',stroke:'var(--bg)','paint-order':'stroke','stroke-linejoin':'round'},gm);t.textContent=p[0];t.dataset.on='1';lEls.push(t)});
+ const cb=$('cats');
+ Object.keys(CAT).forEach(k=>{const b=document.createElement('button');b.className='on';b.innerHTML='<span class="dot"></span>'+CAT[k];b.firstChild.style.background=COL[k];b.onclick=()=>{catOn[k]=catOn[k]?0:1;b.classList.toggle('on',!!catOn[k]);refresh()};cb.appendChild(b)});
+ $('q').oninput=e=>{qs=e.target.value.toLowerCase();refresh()};
+ const ptr=new Map();let pd=0;
+ svg.addEventListener('pointerdown',e=>{ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptr.size===2){const a=[...ptr.values()];pd=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)}});
+ svg.addEventListener('pointermove',e=>{
+  if(!ptr.has(e.pointerId))return;
+  const o=ptr.get(e.pointerId),n={x:e.clientX,y:e.clientY},u=vb.w/svg.clientWidth;
+  if(ptr.size===1){const dx=n.x-o.x,dy=n.y-o.y;moved+=Math.abs(dx)+Math.abs(dy);vb.x-=dx*u;vb.y-=dy*u;ptr.set(e.pointerId,n);apply()}
+  else if(ptr.size===2){ptr.set(e.pointerId,n);const a=[...ptr.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(pd&&d)zoomAt(pd/d,(a[0].x+a[1].x)/2,(a[0].y+a[1].y)/2);pd=d;moved+=10}
+ });
+ ['pointerup','pointercancel','pointerleave'].forEach(t=>svg.addEventListener(t,e=>{ptr.delete(e.pointerId);pd=0}));
+ svg.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.deltaY>0?1.25:0.8,e.clientX,e.clientY)},{passive:false});
+ const mid=f=>{const r=svg.getBoundingClientRect();zoomAt(f,r.left+r.width/2,r.top+r.height/2)};
+ $('zi').onclick=()=>mid(0.6);$('zo').onclick=()=>mid(1.6);
+ $('zr').onclick=()=>{selIdx=-1;$('pinfo').innerHTML='';focusOn(W*0.62,H*0.5,W*0.7)};
+ window.addEventListener('resize',()=>{if(svg.clientWidth)apply()});
+ focusOn(W*0.62,H*0.5,W*0.7);
+ refresh();
+}
+let moved=0;
+
+go();
+</script>
+</body>
+</html>
